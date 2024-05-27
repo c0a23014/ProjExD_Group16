@@ -15,7 +15,7 @@ def check_bound(obj_rct: pg.Rect) -> tuple[bool]:
     """
     オブジェクトが画面内or画面外を判定し，真理値タプルを返す関数
     引数：こうかとんRect，または，爆弾Rect
-    戻り値：横方向，縦方向のはみ出し判定結果（画面内：True／画面外：False）
+    戻り値：縦方向のはみ出し判定結果（画面上：１／画面下：２）
     """
     tate = 0
     if obj_rct.bottom < 0 :
@@ -56,7 +56,6 @@ class Bird:
     def update(self, screen: pg.Surface):
         """
         押下キーに応じてこうかとんを移動させる
-        引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
         """
         tate = check_bound(self.rct)
@@ -130,8 +129,8 @@ class Score:
         """
         self.fonto = pg.font.SysFont("hgp創英角ﾎﾟｯﾌﾟ体", 30)
         self.score = 0
-        self.color = (0,0,255)
-        self.img = self.fonto.render(f"スコア: {self.score}", 0, self.color)
+        self.color = (255,255,0)
+        self.img = self.fonto.render(f"経過時間: {int(self.score)}", 0, self.color)
         self.rct = self.img.get_rect()
         self.rct.center = 100,HEIGHT-50
     
@@ -140,7 +139,7 @@ class Score:
         現在のスコアを表示させる文字列Surfaceの生成
         スクリーンにblit
         """
-        self.img = self.fonto.render(f"スコア: {self.score}", 0, self.color)
+        self.img = self.fonto.render(f"経過時間: {int(self.score)}", 0, self.color)
         screen.blit(self.img, self.rct)
 
 
@@ -197,7 +196,6 @@ def main():
                     beam = None
                     bombs[i] = None
                     bird.change_img(6, screen)
-                    score.score += 1
                     pg.display.update()
         bombs = [bomb for bomb in bombs if bomb is not None]
 
@@ -207,6 +205,7 @@ def main():
             bomb.update(screen)
         if beam is not None:
             beam.update(screen)
+        score.score += 0.02
         score.update(screen)
         pg.display.update()
         tmr += 1
