@@ -7,7 +7,8 @@ import pygame as pg
 
 WIDTH = 1000  # ゲームウィンドウの幅
 HEIGHT = 600  # ゲームウィンドウの高さ
-NUM_OF_BOMBS = 0
+ITEM_Y_POSITIONS = [100, 200, 300, 400, 500]
+ITEM_INTERVAL = 5000
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -56,6 +57,7 @@ class Bird:
     def update(self, screen: pg.Surface):
         """
         押下キーに応じてこうかとんを移動させる
+        引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
         """
         tate = check_bound(self.rct)
@@ -91,19 +93,40 @@ class Enemy:
 class Beam:
     def __init__(self, bird: Bird):
         self.img = pg.transform.rotozoom(pg.image.load("fig/beam.png"), 0, 2.0)
-        self.rct: pg.Rect = self.img.get_rect() #Rect
+        self.rct: pg.Rect = self.img.get_rect()
         self.rct.left = bird.rct.right
         self.rct.centery = bird.rct.centery
-        self.vx, self.vy = +5, 0
+        self.vx, self.vy = +10, 0
 
     def update(self, screen: pg.Surface):
         """
-        爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
+        ビームを速度ベクトルself.vx, self.vyに基づき移動させる
         引数 screen：画面Surface
         """
-        if check_bound(self.rct) == (True, True):
-            self.rct.move_ip(self.vx, self.vy)
-            screen.blit(self.img, self.rct)
+        self.rct.move_ip(self.vx, self.vy)
+        screen.blit(self.img, self.rct)
+
+class Item:
+    def __init__(self, color: tuple[int, int, int], rad: int):
+        """
+        アイテムとして赤い丸を生成する
+        引数1 color：アイテムの色タプル
+        引数2 rad：アイテムの半径
+        """
+        self.img = pg.Surface((2*rad, 2*rad))
+        pg.draw.circle(self.img, color, (rad, rad), rad)
+        self.img.set_colorkey((0, 0, 0))
+        self.rct = self.img.get_rect()
+        self.rct.center = random.randint(WIDTH, WIDTH+100), random.choice(ITEM_Y_POSITIONS)
+        self.vx, self.vy = -5, 0
+
+    def update(self, screen: pg.Surface):
+        """
+        アイテムを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rct.move_ip(self.vx, self.vy)
+        screen.blit(self.img, self.rct)
 
 class Score:
     def __init__(self):
@@ -135,7 +158,11 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))  
     bg_img = pg.image.load("fig/pg_space.jpg")  
     bird = Bird((100, 300))
-    beam = None
+    items = []
+    beams = []
+    beam=None
+    beam_limit = 3
+    last_item_time = 0
     clock = pg.time.Clock()
     score = Score()
     tmr = 0
@@ -145,36 +172,63 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beam = Beam(bird)
-            if event.type == pg.KEYDOWN and event.key == pg.K_UP:
-                d = -100
-                bird.rct.move_ip((0,d))
-            if event.type == pg.KEYDOWN and event.key == pg.K_DOWN:
-                d = 100
-                bird.rct.move_ip((0,d))
-               
-
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE and beam_limit > 0:
+                    beam=Beam(bird)
+                    beams.append(beam)
+                    beam_limit -= 1
+                if event.key == pg.K_UP:
+                    bird.rct.move_ip(0, -100)
+                if event.key == pg.K_DOWN:
+                    bird.rct.move_ip(0, 100)
+                
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
         screen.blit(bird.bg_img, [-x, 0])
         screen.blit(bird.bg_img2,[-x+1200,0])
         screen.blit(bird.bg_img, [-x+2400, 0])
         screen.blit(bird.img, bird.rct)
-
         if tmr % 20 == 0:
-            emys.append(Enemy())
+            emy = Enemy()
+            emys.append(emy)
         for emy in emys:
              emy.update(screen) 
         score.score += 0.02
         score.update(screen)
         pg.display.update()
         bird.tm += 1
+        
+        current_time = pg.time.get_ticks()
+        if current_time - last_item_time > ITEM_INTERVAL:
+            items.append(Item((255, 0, 0), 10))
+            last_item_time = current_time
 
-        key_lst = pg.key.get_pressed()
-        bird.update(screen)
+        for item in items:
+            item.update(screen)
+            if bird.rct.colliderect(item.rct):
+                beam_limit += 1
+                items.remove(item)
+    
+
+        for i,emy in enumerate(emys):
+            if beam is not None:
+                if beam.rct.colliderect(emy.rct):  
+                    emys[i]=None
+                    pg.display.update()
+        emys=[emy for emy in emys if emy is not None]
+
+        for i,beam in enumerate(beams):
+            if emy is not None:
+                if emy.rct.colliderect(beam.rct):  # ビームと爆弾が衝突したら
+                    beams[i]=None
+                    pg.display.update()
+        beams=[beam for beam in beams if beam is not None]
         if beam is not None:
-            beam.update(screen)
+             beam.update(screen)
+
+        bird.update(screen)
+        score.update(screen)
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
