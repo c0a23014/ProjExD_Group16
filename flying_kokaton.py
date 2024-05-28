@@ -116,8 +116,8 @@ def main():
     tmr = 0
     emys = []
     key_lst = pg.key.get_pressed()
+    
 
-            
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -144,11 +144,6 @@ def main():
         pg.display.update()
         bird.tm += 1
 
-
-        
-            # if emys.rct.colliderect(bird.rct):
-
-        #key_lst = pg.key.get_pressed()
         bird.update(screen)
         if beam is not None:
             beam.update(screen)
