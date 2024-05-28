@@ -34,7 +34,7 @@ class Bird:
     def __init__(self, xy: tuple[int, int]):
         """
         UFO画像Surfaceを生成する
-        
+          
         引数 xy：UFO画像の初期位置座標タプル
         """
         self.img = pg.transform.flip(pg.image.load("fig/pg_ufo.png"), True, False)
@@ -60,7 +60,7 @@ class Bird:
 
     def warp_effect(self, screen: pg.Surface):
         """
-        こうかとんがレーンを移動する際のワープエフェクトを描画する
+        UFOがレーンを移動する際のワープエフェクトを描画する
         引数 screen：画面Surface
         """
         current_time = pg.time.get_ticks()
@@ -73,7 +73,7 @@ class Bird:
 
     def update(self, screen: pg.Surface):
         """
-        押下キーに応じてこうかとんをレーン移動させる
+        押下キーに応じてUFOをレーン移動させる
         引数 screen：画面Surface
         """
         if self.move_cooldown > 0:
@@ -81,7 +81,7 @@ class Bird:
 
         key_lst = pg.key.get_pressed()
         self.d = 0
-        if key_lst[pg.K_UP] and self.move_cooldown == 0:
+        if key_lst[pg.K_UP] and self.move_cooldown == 0:#上
             self.warp_positions.append((self.rct.center, pg.time.get_ticks()))
             self.current_lane -= 1
             if self.current_lane < 0:
@@ -89,7 +89,7 @@ class Bird:
             self.d = -1
             self.move_cooldown = 20  # 一度の入力で一回の移動
 
-        if key_lst[pg.K_DOWN] and self.move_cooldown == 0:
+        if key_lst[pg.K_DOWN] and self.move_cooldown == 0:#下
             self.warp_positions.append((self.rct.center, pg.time.get_ticks()))
             self.current_lane += 1
             if self.current_lane > 4:
