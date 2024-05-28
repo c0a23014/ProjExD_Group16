@@ -4,6 +4,13 @@ import sys
 import time
 import pygame as pg
 
+WIDTH = 1000  # ゲームウィンドウの幅
+HEIGHT = 600  # ゲームウィンドウの高さ
+NUM_OF_BOMBS = 0
+ITEM_Y_POSITIONS = [100, 200, 300, 400, 500]
+ITEM_INTERVAL = 5000
+LANE_HEIGHT = HEIGHT // 5  # 画面を5つのレーンに分割
+
 
 WIDTH = 1000  # ゲームウィンドウの幅
 HEIGHT = 600  # ゲームウィンドウの高さ
@@ -12,17 +19,15 @@ ITEM_INTERVAL = 5000
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-def check_bound(obj_rct: pg.Rect) -> tuple[bool]:
+def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内or画面外を判定し，真理値タプルを返す関数
     引数：こうかとんRect，または，爆弾Rect
-    戻り値：縦方向のはみ出し判定結果（画面上：１／画面下：２）
+    戻り値：横方向，縦方向のはみ出し判定結果（画面内：True／画面外：False）
     """
-    tate = 0
-    if obj_rct.bottom < 0 :
-        tate = 1
-    if HEIGHT < obj_rct.top:
-        tate = 2
+    tate = True
+    if obj_rct.top < 0 or HEIGHT < obj_rct.bottom:
+        tate = False
     return tate
 
 
@@ -33,18 +38,22 @@ class Bird:
     
     def __init__(self, xy: tuple[int, int]):
         """
-        こうかとん画像Surfaceを生成する
-        引数 xy：こうかとん画像の初期位置座標タプル
+        UFO画像Surfaceを生成する
+          
+        引数 xy：UFO画像の初期位置座標タプル
         """
-        self.img = pg.transform.flip(pg.image.load("fig/3.png"), True, False)
+        self.img = pg.transform.flip(pg.image.load("fig/pg_ufo.png"), True, False)
         self.rct: pg.Rect = self.img.get_rect()
         self.rct.center = xy
         self.d = 0
         self.tm = 0
         self.bg_img = pg.image.load("fig/pg_space.jpg")
         self.bg_img2 = pg.transform.flip(self.bg_img, True, False)
-
-        
+        self.current_lane = 2  # 初期レーンの設定（中央）
+        self.move_cooldown = 0
+        self.warp_img = pg.image.load("fig/pg_warp.png")
+        self.warp_positions = []
+        self.warp_time = 0
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -54,19 +63,49 @@ class Bird:
         """
         screen.blit(self.img, self.rct)
 
+    def warp_effect(self, screen: pg.Surface):
+        """
+        UFOがレーンを移動する際のワープエフェクトを描画する
+        引数 screen：画面Surface
+        """
+        current_time = pg.time.get_ticks()
+        for pos, start_time in self.warp_positions[:]:
+            if current_time - start_time < 1000:  # ワープエフェクトを1秒間表示
+                warp_rct = self.warp_img.get_rect(center=pos)
+                screen.blit(self.warp_img, warp_rct)
+            else:
+                self.warp_positions.remove((pos, start_time))
+
     def update(self, screen: pg.Surface):
         """
-        押下キーに応じてこうかとんを移動させる
-        引数1 key_lst：押下キーの真理値リスト
-        引数2 screen：画面Surface
+        押下キーに応じてUFOをレーン移動させる
+        引数 screen：画面Surface
         """
-        tate = check_bound(self.rct)
-        if tate == 1:
-            d = 600
-            self.rct.move_ip((0,d))
-        if tate == 2:
-            d = -600
-            self.rct.move_ip((0,d))
+        if self.move_cooldown > 0:
+            self.move_cooldown -= 1
+
+        key_lst = pg.key.get_pressed()
+        self.d = 0
+        if key_lst[pg.K_UP] and self.move_cooldown == 0:#上
+            self.warp_positions.append((self.rct.center, pg.time.get_ticks()))
+            self.current_lane -= 1
+            if self.current_lane < 0:
+                self.current_lane = 4
+            self.d = -1
+            self.move_cooldown = 20  # 一度の入力で一回の移動
+
+        if key_lst[pg.K_DOWN] and self.move_cooldown == 0:#下
+            self.warp_positions.append((self.rct.center, pg.time.get_ticks()))
+            self.current_lane += 1
+            if self.current_lane > 4:
+                self.current_lane = 0
+            self.d = 1
+            self.move_cooldown = 20  # 一度の入力で一回の移動
+
+        # レーンに基づいて位置を設定
+        self.rct.centery = (self.current_lane + 0.5) * LANE_HEIGHT
+        screen.blit(self.img, self.rct)
+        self.warp_effect(screen)
 
 
 class Enemy:
@@ -106,6 +145,7 @@ class Beam:
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
 
+
 class Item:
     def __init__(self, color: tuple[int, int, int], rad: int):
         """
@@ -127,6 +167,7 @@ class Item:
         """
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
+
 
 class Score:
     def __init__(self):
@@ -155,38 +196,34 @@ class Score:
 
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
-    screen = pg.display.set_mode((WIDTH, HEIGHT))  
-    bg_img = pg.image.load("fig/pg_space.jpg")  
-    bird = Bird((100, 300))
+    screen = pg.display.set_mode((WIDTH, HEIGHT))
+    bg_img = pg.image.load("fig/pg_space.jpg")
+    bird = Bird((100, (2 + 0.5) * LANE_HEIGHT))  # 初期位置を中央レーンに設定
     items = []
     beams = []
-    beam=None
+    beam = None
     beam_limit = 3
     last_item_time = 0
     clock = pg.time.Clock()
     score = Score()
     tmr = 0
+    
     key_lst = pg.key.get_pressed()    
     emys = []
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_SPACE and beam_limit > 0:
-                    beam=Beam(bird)
-                    beams.append(beam)
-                    beam_limit -= 1
-                if event.key == pg.K_UP:
-                    bird.rct.move_ip(0, -100)
-                if event.key == pg.K_DOWN:
-                    bird.rct.move_ip(0, 100)
-                
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                beam = Beam(bird)
+                beams.append(beam)
+                beam_limit -= 1
+
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
         screen.blit(bird.bg_img, [-x, 0])
-        screen.blit(bird.bg_img2,[-x+1200,0])
-        screen.blit(bird.bg_img, [-x+2400, 0])
+        screen.blit(bird.bg_img2, [-x + 1200, 0])
+        screen.blit(bird.bg_img, [-x + 2400, 0])
         screen.blit(bird.img, bird.rct)
         if tmr % 20 == 0:
             emy = Enemy()
@@ -208,7 +245,6 @@ def main():
             if bird.rct.colliderect(item.rct):
                 beam_limit += 1
                 items.remove(item)
-    
 
         for i,emy in enumerate(emys):
             if beam is not None:
@@ -216,7 +252,7 @@ def main():
                     emys[i]=None
                     pg.display.update()
         emys=[emy for emy in emys if emy is not None]
-
+        
         for i,beam in enumerate(beams):
             if emy is not None:
                 if emy.rct.colliderect(beam.rct):  # ビームと爆弾が衝突したら
