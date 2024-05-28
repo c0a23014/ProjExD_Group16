@@ -109,7 +109,7 @@ class Beam:
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
-    bg_img = pg.image.load("fig/pg_bg.jpg")
+    bg_img = pg.image.load("fig/pg_space.jpg")
     bird = Bird((100, 300))
     beam = None
     clock = pg.time.Clock()
@@ -130,21 +130,22 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_DOWN:
                 d = 100
                 bird.rct.move_ip((0,d))
-                
+               
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
         screen.blit(bird.bg_img, [-x, 0])
         screen.blit(bird.bg_img2,[-x+1200,0])
         screen.blit(bird.bg_img, [-x+2400, 0])
         screen.blit(bird.img, bird.rct)
+        if tmr % 20 == 0:
+            emys.append(Enemy())
+        for emy in emys:
+             emy.update(screen) 
         pg.display.update()
         bird.tm += 1
 
 
-        if tmr % 20 == 0:
-            emys.append(Enemy())
-        for emy in emys:
-            emy.update(screen)
+        
             # if emys.rct.colliderect(bird.rct):
 
         #key_lst = pg.key.get_pressed()
