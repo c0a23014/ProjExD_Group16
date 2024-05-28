@@ -220,12 +220,6 @@ def main():
                 beam = Beam(bird)
                 beams.append(beam)
                 beam_limit -= 1
-            if event.type == pg.KEYDOWN and event.key == pg.K_UP:
-                d = -100
-                bird.rct.move_ip((0,d))
-            if event.type == pg.KEYDOWN and event.key == pg.K_DOWN:
-                d = 100
-                bird.rct.move_ip((0,d))
 
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
@@ -279,12 +273,10 @@ def main():
                 time.sleep(1)
                 fonto = pg.font.Font(None, 80)
                 txt = fonto.render(f"result: {int(score.score)}", True, (255, 0, 0))
-                #self.img = self.fonto.render(f"経過時間: {int(self.score)}", 0, self.color)
-
                 screen.blit(txt, [WIDTH/2-150, HEIGHT/2])
                 screen.blit(kk_img, bird.rct)
                 pg.display.update()
-                time.sleep(5)
+                time.sleep(3)
                 return
 
             
