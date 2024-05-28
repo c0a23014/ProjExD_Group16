@@ -3,6 +3,7 @@ import random
 import sys
 import time
 import pygame as pg
+import time
 
 WIDTH = 1000  # ゲームウィンドウの幅
 HEIGHT = 600  # ゲームウィンドウの高さ
@@ -12,11 +13,12 @@ ITEM_INTERVAL = 5000
 LANE_HEIGHT = HEIGHT // 5  # 画面を5つのレーンに分割
 
 
-WIDTH = 1000  # ゲームウィンドウの幅
-HEIGHT = 600  # ゲームウィンドウの高さ
-ITEM_Y_POSITIONS = [100, 200, 300, 400, 500]
-ITEM_INTERVAL = 5000
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# class Result:
+#     def __init__(self,bird):
+#         self.img = pg.image.load("fig/kosyou.png")
+#         screen = pg.display.set_mode((WIDTH, HEIGHT))
 
 
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
@@ -214,10 +216,16 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and beam_limit > 0:
                 beam = Beam(bird)
                 beams.append(beam)
                 beam_limit -= 1
+            if event.type == pg.KEYDOWN and event.key == pg.K_UP:
+                d = -100
+                bird.rct.move_ip((0,d))
+            if event.type == pg.KEYDOWN and event.key == pg.K_DOWN:
+                d = 100
+                bird.rct.move_ip((0,d))
 
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
@@ -264,6 +272,24 @@ def main():
 
         bird.update(screen)
         score.update(screen)
+        for emy in emys:
+            if bird.rct.colliderect(emy.rct):
+                kk_img = pg.transform.rotozoom(pg.image.load("fig/kosyou.png"), 0, 0.3)
+                pg.display.update()
+                time.sleep(1)
+                fonto = pg.font.Font(None, 80)
+                txt = fonto.render(f"result: {int(score.score)}", True, (255, 0, 0))
+                #self.img = self.fonto.render(f"経過時間: {int(self.score)}", 0, self.color)
+
+                screen.blit(txt, [WIDTH/2-150, HEIGHT/2])
+                screen.blit(kk_img, bird.rct)
+                pg.display.update()
+                time.sleep(5)
+                return
+
+            
+            
+            
 
         pg.display.update()
         tmr += 1
