@@ -7,7 +7,7 @@ import pygame as pg
 
 WIDTH = 1000  # ゲームウィンドウの幅
 HEIGHT = 600  # ゲームウィンドウの高さ
-NUM_OF_BOMBS = 5
+NUM_OF_BOMBS = 0
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -65,40 +65,27 @@ class Bird:
         if tate == 2:
             d = -600
             self.rct.move_ip((0,d))
-        
 
 
-class Bomb:
+class Enemy:
     """
-    爆弾に関するクラス
+    敵機に関するクラス
     """
-    def __init__(self, color: tuple[int, int, int], rad: int):
-        """
-        引数に基づき爆弾円Surfaceを生成する
-        引数1 color：爆弾円の色タプル
-        引数2 rad：爆弾円の半径
-        """
-        self.img = pg.Surface((2*rad, 2*rad))
-        pg.draw.circle(self.img, color, (rad, rad), rad)
-        self.img.set_colorkey((0, 0, 0))
-        self.rct = self.img.get_rect()
-        self.rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
-        self.vx, self.vy = +5, +5
+    def __init__(self):
+        self.img = pg.image.load("fig/pg_fall.png")
+        self.rct: pg.Rect = self.img.get_rect()
+        self.rct.centerx = WIDTH
+        self.rct.centery = random.choice([0, 60, 200, 260, 320, 380, 440, 500])
+        self.vx, self.vy = -20, 0
 
     def update(self, screen: pg.Surface):
         """
-        爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
         引数 screen：画面Surface
         """
-        yoko, tate = check_bound(self.rct)
-        if not yoko:
-            self.vx *= -1
-        if not tate:
-            self.vy *= -1
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
-        self.update(screen)
-        
 
 
 class Beam:
@@ -143,21 +130,17 @@ class Score:
         screen.blit(self.img, self.rct)
 
 
-
-
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
-    screen = pg.display.set_mode((WIDTH, HEIGHT))    
-    bg_img = pg.image.load("fig/pg_bg.jpg")
+    screen = pg.display.set_mode((WIDTH, HEIGHT))  
+    bg_img = pg.image.load("fig/pg_space.jpg")  
     bird = Bird((100, 300))
-    #bomb = Bomb((255, 0, 0), 10)
-    bombs = [Bomb((255, 0, 0), 10)for _ in range(NUM_OF_BOMBS)]
     beam = None
     clock = pg.time.Clock()
     score = Score()
     tmr = 0
-    key_lst = pg.key.get_pressed()
-            
+    key_lst = pg.key.get_pressed()    
+    emys = []
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -170,43 +153,28 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_DOWN:
                 d = 100
                 bird.rct.move_ip((0,d))
-                
+               
+
         screen.blit(bg_img, [0, 0])
         x = bird.tm % 2400
         screen.blit(bird.bg_img, [-x, 0])
         screen.blit(bird.bg_img2,[-x+1200,0])
         screen.blit(bird.bg_img, [-x+2400, 0])
         screen.blit(bird.img, bird.rct)
+
+        if tmr % 20 == 0:
+            emys.append(Enemy())
+        for emy in emys:
+             emy.update(screen) 
+        score.score += 0.02
+        score.update(screen)
         pg.display.update()
         bird.tm += 1
-        
-        for bomb in bombs:
-            if bird.rct.colliderect(bomb.rct):
-                # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
-                bird.change_img(8, screen)
-                fonto = pg.font.Font(None, 80)
-                txt = fonto.render("Game Over", True, (255, 0, 0))
-                screen.blit(txt, [WIDTH/2-150, HEIGHT/2])
-                pg.display.update()
-                time.sleep(5)
-                return
-        for i, bomb in enumerate(bombs):
-            if beam is not None:
-                if beam.rct.colliderect(bomb.rct):
-                    beam = None
-                    bombs[i] = None
-                    bird.change_img(6, screen)
-                    pg.display.update()
-        bombs = [bomb for bomb in bombs if bomb is not None]
 
         key_lst = pg.key.get_pressed()
         bird.update(screen)
-        for bomb in bombs:
-            bomb.update(screen)
         if beam is not None:
             beam.update(screen)
-        score.score += 0.02
-        score.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
