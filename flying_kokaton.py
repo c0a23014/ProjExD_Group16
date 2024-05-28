@@ -33,12 +33,14 @@ def main():
                 return
             elif event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
             #bird.rct.colliderect(emys.rct):
+                
                         # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
-                kk_img = pg.transform.rotozoom(pg.image.load("fig/kosyou.png"), 100, 0.3)
+                kk_img = pg.transform.rotozoom(pg.image.load("fig/kosyou.png"), 
+                                               0, 0.3)
                 pg.display.update()
                 time.sleep(1)
                 fonto = pg.font.Font(None, 80)
-                txt = fonto.render("result:", True, (0, 0, 0))
+                txt = fonto.render("result:", True, (255, 255, 0))
                 screen.blit(txt, [WIDTH/2-150, HEIGHT/2])
                 screen.blit(kk_img, kk_rct)
                 pg.display.update()
